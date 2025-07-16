@@ -10,7 +10,8 @@ workflows:
       xcode: latest
       cocoapods: default
       vars:
-        BUNDLE_ID: "com.yourcompany.vravatarapp"
+        BUNDLE_ID: "com.vr.avatar1"
+        TEAM_ID: "86M5KD75JM"
         XCODE_WORKSPACE: "Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
         APP_STORE_CONNECT_ISSUER_ID: Encrypted(...)
@@ -30,6 +31,8 @@ workflows:
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
+          xcode-project build-settings set BUNDLE_ID="$BUNDLE_ID"
+          xcode-project build-settings set DEVELOPMENT_TEAM="$TEAM_ID"
       - name: Build ipa for distribution
         script: |
           flutter build ipa --release \
