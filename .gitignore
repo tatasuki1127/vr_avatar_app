@@ -1,4 +1,4 @@
-# Miscellaneous
+﻿# Miscellaneous
 *.class
 *.log
 *.pyc
@@ -67,3 +67,17 @@ app.*.map.json
 *.tmp
 *.temp
 pubspec_new.yaml
+
+# Unity Large Libraries (generated during build)
+unity/Libraries/libil2cpp.a
+unity/Libraries/libiPhone-lib.a
+unity/Libraries/baselib.a
+unity/Il2CppOutputProject/
+unity/VRAvatarApp_Unity_BurstDebugInformation_DoNotShip/
+
+# Unity Large Libraries (generated during build)
+unity/Libraries/libil2cpp.a
+unity/Libraries/libiPhone-lib.a
+unity/Libraries/baselib.a
+unity/Il2CppOutputProject/
+unity/VRAvatarApp_Unity_BurstDebugInformation_DoNotShip/
