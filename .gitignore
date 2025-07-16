@@ -48,8 +48,10 @@ app.*.map.json
 /unity/Unity-iPhone.xcodeproj/project.xcworkspace/
 /unity/Unity-iPhone.xcodeproj/xcuserdata/
 /unity/VRAvatarApp_Unity_BurstDebugInformation_DoNotShip/
-/unity/Il2CppOutputProject/IL2CPP/build/
-/unity/Il2CppOutputProject/IL2CPP/external/
+/unity/Il2CppOutputProject/
+/unity/Libraries/libil2cpp.a
+/unity/Libraries/libiPhone-lib.a
+/unity/Libraries/baselib.a
 
 # iOS related
 **/ios/Flutter/flutter_export_environment.sh
