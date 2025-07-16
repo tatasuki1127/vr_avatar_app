@@ -17,12 +17,10 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
-
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
-
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
@@ -32,18 +30,14 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-
 # Symbolication related
 app.*.symbols
-
 # Obfuscation related
 app.*.map.json
-
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
-
 # Unity related
 /unity/Unity-iPhone.xcodeproj/project.xcworkspace/
 /unity/Unity-iPhone.xcodeproj/xcuserdata/
@@ -52,29 +46,16 @@ app.*.map.json
 /unity/Libraries/libil2cpp.a
 /unity/Libraries/libiPhone-lib.a
 /unity/Libraries/baselib.a
-
 # iOS related
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/Runner/GeneratedPluginRegistrant.*
 /ios/build/
-
 # Codemagic build artifacts
-/build/
-/ios/build/
 /android/build/
-
 # Temporary files
 *.tmp
 *.temp
 pubspec_new.yaml
-
-# Unity Large Libraries (generated during build)
-unity/Libraries/libil2cpp.a
-unity/Libraries/libiPhone-lib.a
-unity/Libraries/baselib.a
-unity/Il2CppOutputProject/
-unity/VRAvatarApp_Unity_BurstDebugInformation_DoNotShip/
-
 # Unity Large Libraries (generated during build)
 unity/Libraries/libil2cpp.a
 unity/Libraries/libiPhone-lib.a
