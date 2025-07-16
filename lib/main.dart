@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_unity_widget/flutter_unity_widget.dart';
+import 'package:flutter_embed_unity/flutter_embed_unity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -541,7 +541,6 @@ class UnityVRScreen extends StatefulWidget {
 }
 
 class _UnityVRScreenState extends State<UnityVRScreen> {
-  UnityWidgetController? _unityWidgetController;
   bool _isUnityReady = false;
   String _statusMessage = 'Unity VR初期化中...';
 
@@ -549,6 +548,7 @@ class _UnityVRScreenState extends State<UnityVRScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _startUnityVR();
   }
 
   @override
@@ -556,12 +556,8 @@ class _UnityVRScreenState extends State<UnityVRScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: _isUnityReady
-          ? UnityWidget(
-              onUnityCreated: _onUnityCreated,
-              onUnityMessage: _onUnityMessage,
-              onUnitySceneLoaded: _onUnitySceneLoaded,
-              fullscreen: true,
-              useAndroidViewSurface: false,
+          ? EmbedUnity(
+              onMessageFromUnity: _onUnityMessage,
             )
           : _buildLoadingScreen(),
     );
@@ -609,22 +605,21 @@ class _UnityVRScreenState extends State<UnityVRScreen> {
     );
   }
 
-  void _onUnityCreated(UnityWidgetController controller) {
-    _unityWidgetController = controller;
-    
+  void _startUnityVR() {
     setState(() {
       _statusMessage = 'Unity VRシステム開始...';
+      _isUnityReady = true;
     });
     
     // Unity GPU最適化開始
-    controller.postMessage(
+    sendToUnity(
       'AppManager',
       'StartGPUOptimization',
       '{"quality": "high", "neuralEngine": true}',
     );
   }
 
-  void _onUnityMessage(message) {
+  void _onUnityMessage(String message) {
     print('Unity Message: $message');
     
     switch (message) {
@@ -666,14 +661,6 @@ class _UnityVRScreenState extends State<UnityVRScreen> {
     }
   }
 
-  void _onUnitySceneLoaded(SceneLoaded scene) {
-    print('Unity Scene Loaded: ${scene.name}');
-    
-    setState(() {
-      _statusMessage = 'Unity VRシーン読み込み完了';
-      _isUnityReady = true;
-    });
-  }
 
   void _showErrorDialog(String title, String message) {
     showDialog(
@@ -709,7 +696,6 @@ class _UnityVRScreenState extends State<UnityVRScreen> {
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    _unityWidgetController?.dispose();
     super.dispose();
   }
 }
