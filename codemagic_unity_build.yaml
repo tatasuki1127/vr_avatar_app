@@ -1,0 +1,128 @@
+workflows:
+  unity-flutter-ios:
+    name: Unity Flutter iOS Build
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      groups:
+        - unity_credentials
+        - ios_credentials
+      vars:
+        UNITY_VERSION: 2022.3.62f1
+        UNITY_BIN: /Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity
+        UNITY_PROJECT_PATH: VRAvatarApp_Unity
+        FLUTTER_PROJECT_PATH: .
+        BUNDLE_ID: com.vr.avatar1
+        TEAM_ID: 86M5KD75JM
+      flutter: stable
+      unity: 2022.3.62f1
+    scripts:
+      - name: Setup Unity License
+        script: |
+          echo "🚀 Unity License Setup"
+          $UNITY_BIN -batchmode -quit -logFile -serial ${UNITY_SERIAL} -username ${UNITY_USERNAME} -password ${UNITY_PASSWORD} || exit 0
+          
+      - name: Build Unity Project for iOS
+        script: |
+          echo "🔧 Building Unity Project for iOS"
+          
+          # Unity iOS Build
+          $UNITY_BIN -batchmode -quit \
+            -projectPath $UNITY_PROJECT_PATH \
+            -buildTarget iOS \
+            -customBuildTarget iOS \
+            -customBuildName iOS \
+            -customBuildPath unity_build \
+            -executeMethod BuildCommand.PerformBuild \
+            -logFile unity_build.log
+          
+          # Unity Build Success確認
+          if [ $? -eq 0 ]; then
+            echo "✅ Unity iOS Build Success"
+          else
+            echo "❌ Unity iOS Build Failed"
+            cat unity_build.log
+            exit 1
+          fi
+          
+      - name: Verify UnityFramework.framework
+        script: |
+          echo "🔍 Verifying UnityFramework.framework"
+          
+          FRAMEWORK_PATH="unity_build/UnityFramework/UnityFramework.framework"
+          
+          if [ -d "$FRAMEWORK_PATH" ]; then
+            echo "✅ UnityFramework.framework found"
+            ls -la "$FRAMEWORK_PATH"
+            
+            # 必要なファイルが存在するか確認
+            if [ -f "$FRAMEWORK_PATH/UnityFramework" ]; then
+              echo "✅ UnityFramework binary found"
+            else
+              echo "❌ UnityFramework binary missing"
+            fi
+            
+            if [ -f "$FRAMEWORK_PATH/Headers/UnityFramework.h" ]; then
+              echo "✅ UnityFramework.h found"
+            else
+              echo "❌ UnityFramework.h missing"
+            fi
+            
+            if [ -f "$FRAMEWORK_PATH/Modules/module.modulemap" ]; then
+              echo "✅ module.modulemap found"
+            else
+              echo "❌ module.modulemap missing"
+            fi
+          else
+            echo "❌ UnityFramework.framework not found"
+            exit 1
+          fi
+          
+      - name: Integrate Unity with Flutter
+        script: |
+          echo "🔗 Integrating Unity with Flutter"
+          
+          # Unity buildをFlutterプロジェクトのunityフォルダーにコピー
+          rm -rf unity/
+          cp -r unity_build/ unity/
+          
+          # 権限設定
+          chmod -R 755 unity/
+          
+          echo "✅ Unity Integration Complete"
+          
+      - name: Flutter Dependencies
+        script: |
+          echo "📦 Installing Flutter Dependencies"
+          flutter pub get
+          
+      - name: Pre-build Configuration
+        script: |
+          echo "🔧 Pre-build Configuration"
+          
+          # Bundle ID設定
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" ios/Runner/Info.plist
+          
+          # Development Team設定
+          sed -i '' "s/DEVELOPMENT_TEAM = \"\"/DEVELOPMENT_TEAM = \"$TEAM_ID\"/g" ios/Runner.xcodeproj/project.pbxproj
+          
+          echo "✅ Pre-build Configuration Complete"
+          
+      - name: Build Flutter iOS App
+        script: |
+          echo "🍎 Building Flutter iOS App"
+          
+          flutter build ipa --release \
+            --export-options-plist /Users/builder/export_options.plist
+            
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - unity_build.log
+      - flutter_build.log
+      
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_app_store: false
