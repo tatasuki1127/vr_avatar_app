@@ -6,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io' show Platform;
 import 'screens/camera_test_screen.dart';
+import 'services/camera_service.dart';
 
 void main() {
   runApp(const VRAvatarApp());
@@ -290,67 +291,63 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin, 
   }
 
   Future<void> _checkPermissions() async {
-    final cameraStatus = await Permission.camera.status;
     setState(() {
-      _hasPermissions = cameraStatus.isGranted;
+      _permissionStatus = 'カメラ権限チェック中...';
+    });
+    
+    // 実際のカメラアクセスで権限をテスト
+    final cameraService = CameraService.instance;
+    final canAccessCamera = await cameraService.initializeCamera();
+    
+    setState(() {
+      _hasPermissions = canAccessCamera;
       
-      // 権限状態を詳細表示
-      if (cameraStatus.isGranted) {
+      if (canAccessCamera) {
         _permissionStatus = 'カメラ権限: 許可済み ✓';
-      } else if (cameraStatus.isDenied) {
-        _permissionStatus = 'カメラ権限: 未許可 (タップして許可)';
-      } else if (cameraStatus.isPermanentlyDenied) {
-        _permissionStatus = 'カメラ権限: 拒否済み (設定から許可が必要)';
-      } else if (cameraStatus.isRestricted) {
-        _permissionStatus = 'カメラ権限: 制限中';
+        // テスト後はカメラを停止
+        cameraService.stopCamera();
       } else {
-        _permissionStatus = 'カメラ権限: 不明な状態';
+        // permission_handlerで詳細な状態をチェック
+        final permissionStatus = await Permission.camera.status;
+        if (permissionStatus.isPermanentlyDenied) {
+          _permissionStatus = 'カメラ権限: 拒否済み (設定から許可が必要)';
+        } else if (permissionStatus.isDenied) {
+          _permissionStatus = 'カメラ権限: 未許可 (タップして許可)';
+        } else {
+          _permissionStatus = 'カメラ権限: アクセスできません';
+        }
       }
     });
   }
 
   Future<void> _requestPermissions() async {
-    final cameraStatus = await Permission.camera.status;
+    setState(() {
+      _permissionStatus = 'カメラ権限リクエスト中...';
+    });
+
+    // permission_handlerでリクエスト
+    final permissionStatus = await Permission.camera.request();
     
-    // 権限状態を詳細チェック
-    if (cameraStatus.isDenied) {
-      // 初回リクエスト - ダイアログ表示されるはず
-      setState(() {
-        _permissionStatus = 'カメラ権限リクエスト中...';
-      });
+    // リクエスト後、実際のカメラアクセスで確認
+    final cameraService = CameraService.instance;
+    final canAccessCamera = await cameraService.initializeCamera();
+    
+    setState(() {
+      _hasPermissions = canAccessCamera;
       
-      final newStatus = await Permission.camera.request();
-      setState(() {
-        _hasPermissions = newStatus.isGranted;
-        
-        if (newStatus.isGranted) {
-          _permissionStatus = 'カメラ権限: 許可済み ✓';
-        } else if (newStatus.isPermanentlyDenied) {
+      if (canAccessCamera) {
+        _permissionStatus = 'カメラ権限: 許可済み ✓';
+        // テスト後はカメラを停止
+        cameraService.stopCamera();
+      } else {
+        if (permissionStatus.isPermanentlyDenied) {
           _permissionStatus = 'カメラ権限: 拒否済み (設定から許可が必要)';
         } else {
           _permissionStatus = 'カメラ権限: 拒否されました';
         }
-      });
-      
-      if (!_hasPermissions) {
         _showPermissionDialog();
       }
-    } else if (cameraStatus.isPermanentlyDenied) {
-      // 既に拒否済み - 設定アプリへ直接誘導
-      _showPermissionDialog();
-    } else if (cameraStatus.isGranted) {
-      setState(() {
-        _hasPermissions = true;
-        _permissionStatus = 'カメラ権限: 許可済み ✓';
-      });
-    } else {
-      // 制限状態など - 再リクエスト
-      final newStatus = await Permission.camera.request();
-      setState(() {
-        _hasPermissions = newStatus.isGranted;
-        _permissionStatus = newStatus.isGranted ? 'カメラ権限: 許可済み ✓' : 'カメラ権限: 拒否されました';
-      });
-    }
+    });
   }
 
   void _showPermissionDialog() {
