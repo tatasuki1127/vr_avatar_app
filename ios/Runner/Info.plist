@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>VR Avatar App</string>
+	<string>VR Avatar</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.vr.avatar1</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.1</string>
+	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>VR Avatar App</string>
+	<string>vr_avatar_app</string>
 	<key>NSCameraUsageDescription</key>
 	<string>VRアバター機能のためカメラアクセスが必要です</string>
 	<key>CFBundlePackageType</key>
