@@ -9,9 +9,9 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.vr.avatar1</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
+	<string>6.1</string>
 	<key>CFBundleName</key>
 	<string>vr_avatar_app</string>
 	<!-- Camera Usage Permission for VR Avatar -->
@@ -42,19 +42,10 @@
 	<key>UIStatusBarHidden</key>
 	<true/>
 	
-	<!-- VR性能最適化設定 -->
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	
-	<!-- Neural Engine & Metal API 性能目標 -->
-	<!-- 60FPS安定・8ms AI推論・16ms 3D描画対応 -->
-	
 	<!-- App Store & CodeMagic署名用設定 -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	
-	<!-- App Store Connect設定 -->
-	<!-- Bundle IDは$(PRODUCT_BUNDLE_IDENTIFIER)で管理 -->
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
