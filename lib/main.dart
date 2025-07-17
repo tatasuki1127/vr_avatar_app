@@ -286,7 +286,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin, 
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       // アプリが前面に戻った時に権限を再チェック
-      _checkPermissions();
+      Future.microtask(() => _checkPermissions());
     }
   }
 
@@ -299,16 +299,18 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin, 
     final cameraService = CameraService.instance;
     final canAccessCamera = await cameraService.initializeCamera();
     
-    setState(() {
-      _hasPermissions = canAccessCamera;
-      
-      if (canAccessCamera) {
+    if (canAccessCamera) {
+      setState(() {
+        _hasPermissions = true;
         _permissionStatus = 'カメラ権限: 許可済み ✓';
-        // テスト後はカメラを停止
-        cameraService.stopCamera();
-      } else {
-        // permission_handlerで詳細な状態をチェック
-        final permissionStatus = await Permission.camera.status;
+      });
+      // テスト後はカメラを停止
+      await cameraService.stopCamera();
+    } else {
+      // permission_handlerで詳細な状態をチェック
+      final permissionStatus = await Permission.camera.status;
+      setState(() {
+        _hasPermissions = false;
         if (permissionStatus.isPermanentlyDenied) {
           _permissionStatus = 'カメラ権限: 拒否済み (設定から許可が必要)';
         } else if (permissionStatus.isDenied) {
@@ -316,8 +318,8 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin, 
         } else {
           _permissionStatus = 'カメラ権限: アクセスできません';
         }
-      }
-    });
+      });
+    }
   }
 
   Future<void> _requestPermissions() async {
@@ -332,22 +334,24 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin, 
     final cameraService = CameraService.instance;
     final canAccessCamera = await cameraService.initializeCamera();
     
-    setState(() {
-      _hasPermissions = canAccessCamera;
-      
-      if (canAccessCamera) {
+    if (canAccessCamera) {
+      setState(() {
+        _hasPermissions = true;
         _permissionStatus = 'カメラ権限: 許可済み ✓';
-        // テスト後はカメラを停止
-        cameraService.stopCamera();
-      } else {
+      });
+      // テスト後はカメラを停止
+      await cameraService.stopCamera();
+    } else {
+      setState(() {
+        _hasPermissions = false;
         if (permissionStatus.isPermanentlyDenied) {
           _permissionStatus = 'カメラ権限: 拒否済み (設定から許可が必要)';
         } else {
           _permissionStatus = 'カメラ権限: 拒否されました';
         }
-        _showPermissionDialog();
-      }
-    });
+      });
+      _showPermissionDialog();
+    }
   }
 
   void _showPermissionDialog() {
