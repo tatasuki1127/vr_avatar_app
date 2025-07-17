@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io' show Platform;
+import 'screens/camera_test_screen.dart';
 
 void main() {
   runApp(const VRAvatarApp());
@@ -249,16 +250,18 @@ class MenuScreen extends StatefulWidget {
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
+class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   
   bool _isLoading = false;
   bool _hasPermissions = false;
+  String _permissionStatus = '権限チェック中...';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     
     _pulseController = AnimationController(
       duration: const Duration(seconds: 2),
@@ -277,21 +280,76 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
     _checkPermissions();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // アプリが前面に戻った時に権限を再チェック
+      _checkPermissions();
+    }
+  }
+
   Future<void> _checkPermissions() async {
     final cameraStatus = await Permission.camera.status;
     setState(() {
       _hasPermissions = cameraStatus.isGranted;
+      
+      // 権限状態を詳細表示
+      if (cameraStatus.isGranted) {
+        _permissionStatus = 'カメラ権限: 許可済み ✓';
+      } else if (cameraStatus.isDenied) {
+        _permissionStatus = 'カメラ権限: 未許可 (タップして許可)';
+      } else if (cameraStatus.isPermanentlyDenied) {
+        _permissionStatus = 'カメラ権限: 拒否済み (設定から許可が必要)';
+      } else if (cameraStatus.isRestricted) {
+        _permissionStatus = 'カメラ権限: 制限中';
+      } else {
+        _permissionStatus = 'カメラ権限: 不明な状態';
+      }
     });
   }
 
   Future<void> _requestPermissions() async {
-    final cameraStatus = await Permission.camera.request();
-    setState(() {
-      _hasPermissions = cameraStatus.isGranted;
-    });
+    final cameraStatus = await Permission.camera.status;
     
-    if (!_hasPermissions) {
+    // 権限状態を詳細チェック
+    if (cameraStatus.isDenied) {
+      // 初回リクエスト - ダイアログ表示されるはず
+      setState(() {
+        _permissionStatus = 'カメラ権限リクエスト中...';
+      });
+      
+      final newStatus = await Permission.camera.request();
+      setState(() {
+        _hasPermissions = newStatus.isGranted;
+        
+        if (newStatus.isGranted) {
+          _permissionStatus = 'カメラ権限: 許可済み ✓';
+        } else if (newStatus.isPermanentlyDenied) {
+          _permissionStatus = 'カメラ権限: 拒否済み (設定から許可が必要)';
+        } else {
+          _permissionStatus = 'カメラ権限: 拒否されました';
+        }
+      });
+      
+      if (!_hasPermissions) {
+        _showPermissionDialog();
+      }
+    } else if (cameraStatus.isPermanentlyDenied) {
+      // 既に拒否済み - 設定アプリへ直接誘導
       _showPermissionDialog();
+    } else if (cameraStatus.isGranted) {
+      setState(() {
+        _hasPermissions = true;
+        _permissionStatus = 'カメラ権限: 許可済み ✓';
+      });
+    } else {
+      // 制限状態など - 再リクエスト
+      final newStatus = await Permission.camera.request();
+      setState(() {
+        _hasPermissions = newStatus.isGranted;
+        _permissionStatus = newStatus.isGranted ? 'カメラ権限: 許可済み ✓' : 'カメラ権限: 拒否されました';
+      });
     }
   }
 
@@ -362,6 +420,15 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
         });
       }
     }
+  }
+
+  void _launchCameraTest() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CameraTestScreen(),
+      ),
+    );
   }
 
   @override
@@ -471,16 +538,51 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                           ),
                   ),
                 ),
-                const SizedBox(height: 30),
-                if (!_hasPermissions)
-                  const Text(
-                    'カメラ権限が必要です',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 14,
+                const SizedBox(height: 20),
+                // カメラテストボタン
+                ElevatedButton(
+                  onPressed: _launchCameraTest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    minimumSize: const Size(200, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                const SizedBox(height: 80),
+                  child: const Text(
+                    'カメラテスト',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // 権限状態表示
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _hasPermissions 
+                        ? Colors.green.withOpacity(0.2) 
+                        : Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _hasPermissions ? Colors.green : Colors.orange,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    _permissionStatus,
+                    style: TextStyle(
+                      color: _hasPermissions ? Colors.green : Colors.orange,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 50),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -528,6 +630,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pulseController.dispose();
     super.dispose();
   }
