@@ -646,20 +646,21 @@ class UnityVRScreen extends StatefulWidget {
 
 class _UnityVRScreenState extends State<UnityVRScreen> {
   bool _isUnityReady = false;
-  String _statusMessage = 'Unity VR初期化中...';
+  bool _isFlutterUnityBridgeReady = false;
+  String _statusMessage = 'Flutter-Unity通信初期化中...';
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _startUnityVR();
+    _initializeFlutterUnityBridge();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: _isUnityReady
+      body: _isUnityReady && _isFlutterUnityBridgeReady
           ? EmbedUnity(
               onMessageFromUnity: _onUnityMessage,
             )
@@ -709,28 +710,83 @@ class _UnityVRScreenState extends State<UnityVRScreen> {
     );
   }
 
-  void _startUnityVR() {
+  /// <summary>
+  /// Flutter-Unity通信ブリッジの初期化
+  /// null pointer crashを防ぐため、段階的に初期化
+  /// </summary>
+  void _initializeFlutterUnityBridge() async {
+    setState(() {
+      _statusMessage = 'Flutter-Unity通信初期化中...';
+    });
+    
+    // Step 1: Flutter側の準備確認
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    setState(() {
+      _statusMessage = 'Unity Framework準備中...';
+      _isFlutterUnityBridgeReady = true;
+    });
+    
+    // Step 2: Unity Framework初期化待機
+    await Future.delayed(const Duration(milliseconds: 1000));
+    
     setState(() {
       _statusMessage = 'Unity VRシステム開始...';
       _isUnityReady = true;
     });
     
+    // Step 3: Unity初期化後、安全にメッセージ送信
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    if (_isUnityReady && _isFlutterUnityBridgeReady) {
+      _startUnityVR();
+    }
+  }
+  
+  void _startUnityVR() {
+    setState(() {
+      _statusMessage = 'Unity GPU最適化開始...';
+    });
+    
     // Unity GPU最適化開始
-    sendToUnity(
-      'AppManager',
-      'StartGPUOptimization',
-      '{"quality": "high", "neuralEngine": true}',
-    );
+    try {
+      sendToUnity(
+        'AppManager',
+        'StartGPUOptimization',
+        '{"quality": "high", "neuralEngine": true}',
+      );
+    } catch (e) {
+      print('Unity通信エラー: $e');
+      setState(() {
+        _statusMessage = 'Unity通信エラー: $e';
+      });
+    }
   }
 
   void _onUnityMessage(String message) {
     print('Unity Message: $message');
     
+    // Unity通信の安全性確認
+    if (!_isFlutterUnityBridgeReady) {
+      print('Flutter-Unity通信未準備のため、メッセージを無視: $message');
+      return;
+    }
+    
     switch (message) {
-      case 'UNITY_READY':
+      case 'UNITY_INITIALIZED':
+        setState(() {
+          _statusMessage = 'Unity初期化完了';
+        });
+        break;
+      case 'UNITY_SYSTEMS_READY':
         setState(() {
           _isUnityReady = true;
           _statusMessage = 'Unity VR準備完了';
+        });
+        break;
+      case 'SCENE_LOADED':
+        setState(() {
+          _statusMessage = 'Unity シーン読み込み完了';
         });
         break;
       case 'GPU_OPTIMIZATION_STARTED':
